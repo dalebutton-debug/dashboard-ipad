@@ -2,160 +2,78 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Home Dashboard</title>
+<title>Dashboard</title>
 
 <style>
 
 body{
   margin:0;
-  padding:26px;
+  padding:22px;
   font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
   background:#0b0f14;
   color:#e6e9ef;
 }
 
-/* ---------- CLOCK ---------- */
-
 .header{
-  font-size:72px;
+  font-size:64px;
   font-weight:600;
-  letter-spacing:2px;
 }
 
 .countdown{
-  margin-top:6px;
   font-size:18px;
   color:#9aa6b5;
+  margin-top:4px;
 }
-
-/* ---------- GRID ---------- */
 
 .grid{
   display:grid;
-  grid-template-columns:2.4fr 1fr;
-  gap:24px;
-  margin-top:24px;
+  grid-template-columns:2.2fr 1fr;
+  gap:18px;
+  margin-top:20px;
 }
-
-/* ---------- PANELS ---------- */
 
 .panel{
   background:#141922;
-  border-radius:22px;
-  padding:22px;
-  box-shadow:0 10px 30px rgba(0,0,0,.45);
-}
-
-.panel h2{
-  margin:0 0 16px 0;
-  font-size:18px;
-  color:#8fa8ff;
+  border-radius:18px;
+  padding:18px;
 }
 
 /* ---------- CALENDAR ---------- */
 
 .dayBlock{
-  margin-bottom:18px;
-  padding-bottom:12px;
-  border-bottom:1px solid rgba(255,255,255,.05);
+  margin-bottom:14px;
 }
 
 .dayTitle{
-  font-size:17px;
   font-weight:600;
-  color:#6f8cff;
+  color:#7fa2ff;
   margin-bottom:6px;
 }
-
-/* Workload heat bar */
-
-.heatBar{
-  height:4px;
-  border-radius:4px;
-  margin-bottom:10px;
-  background:#222;
-  overflow:hidden;
-}
-
-.heatFill{
-  height:100%;
-  background:linear-gradient(90deg,#4f7cff,#9fb3ff);
-}
-
-/* Events */
 
 .eventRow{
   display:flex;
-  margin-bottom:6px;
+  margin-bottom:4px;
 }
 
 .timeCol{
-  width:70px;
-  font-size:14px;
+  width:64px;
   color:#9aa6b5;
-  flex-shrink:0;
-}
-
-.eventCol{
-  flex:1;
 }
 
 .eventTitle{
-  font-size:15px;
-  line-height:1.2;
+  flex:1;
 }
 
-.freeBlock{
-  font-size:13px;
-  color:#7f8896;
-  margin-bottom:6px;
-}
+/* ---------- WEATHER / TUB ---------- */
 
-/* ---------- WEATHER ---------- */
-
-.weatherTemp{
-  font-size:54px;
+.big{
+  font-size:46px;
   font-weight:600;
-}
-
-.weatherMeta{
-  margin-top:8px;
-  font-size:16px;
-  color:#c3cad6;
-}
-
-/* ---------- TUB ---------- */
-
-.tempBig{
-  font-size:54px;
-  font-weight:600;
-}
-
-.trend{
-  font-size:20px;
-  color:#9aa6b5;
-  margin-left:8px;
-}
-
-.statRow{
-  margin-top:10px;
-  font-size:15px;
-  color:#c3cad6;
 }
 
 .small{
-  margin-top:10px;
-  font-size:12px;
+  font-size:13px;
   color:#8b94a3;
-}
-
-.dot{
-  display:inline-block;
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  margin-left:8px;
-  background:#37d67a;
 }
 
 </style>
@@ -164,27 +82,21 @@ body{
 <body>
 
 <div class="header" id="clock">--:--</div>
-<div class="countdown" id="countdown">Loading next event…</div>
+<div class="countdown" id="countdown">Loading…</div>
 
 <div class="grid">
 
-  <!-- CALENDAR -->
   <div class="panel">
-    <h2>Next 5 Days</h2>
     <div id="calendar">Loading…</div>
   </div>
 
   <div>
 
-    <!-- WEATHER -->
     <div class="panel">
-      <h2>Today</h2>
       <div id="weather">Loading…</div>
     </div>
 
-    <!-- HOT TUB -->
-    <div class="panel" style="margin-top:24px;">
-      <h2>Hot Tub</h2>
+    <div class="panel" style="margin-top:18px;">
       <div id="tub">Loading…</div>
     </div>
 
@@ -196,125 +108,79 @@ body{
 
 /* ---------- CLOCK ---------- */
 
-function updateClock(){
-  var now=new Date();
-  clock.innerHTML=
-    now.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+function tick(){
+  clock.innerHTML =
+    new Date().toLocaleTimeString([],{
+      hour:"2-digit",minute:"2-digit"
+    });
 }
-updateClock();
-setInterval(updateClock,1000);
+tick();
+setInterval(tick,1000);
 
 
-/* ---------- API ---------- */
+/* ---------- LOAD DATA ---------- */
 
-var api=
+const api =
 "https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
 
-fetch(api)
-.then(r=>r.json())
-.then(data=>{
+function loadData(){
 
-  renderCalendar(data.events);
-  renderTub(data);
-  renderCountdown(data.events);
+  fetch(api)
+  .then(r=>r.json())
+  .then(data=>{
 
-});
+    requestAnimation hookupFrame(()=>{
+      renderCalendar(data.events);
+    });
 
+    renderTub(data);
+    renderCountdown(data.events);
 
-/* ---------- COUNTDOWN ---------- */
-
-function renderCountdown(events){
-
-  var now=new Date();
-  var next=null;
-
-  events.forEach(e=>{
-    var d=new Date(e.start);
-    if(d>now && (!next || d<next)) next=d;
   });
 
-  if(!next){
-    countdown.innerHTML="No upcoming events";
-    return;
-  }
-
-  function tick(){
-    var diff=next-new Date();
-    if(diff<0) return;
-
-    var h=Math.floor(diff/3600000);
-    var m=Math.floor((diff%3600000)/60000);
-
-    countdown.innerHTML=
-      "Next event in "+h+"h "+m+"m";
-  }
-
-  tick();
-  setInterval(tick,60000);
-
 }
+
+loadData();
+setInterval(loadData,600000);
 
 
 /* ---------- CALENDAR ---------- */
 
 function renderCalendar(events){
 
-  var now=new Date();
-  var end=new Date();
-  end.setDate(now.getDate()+5);
+  if(!events.length){
+    calendar.innerHTML="No events";
+    return;
+  }
 
-  var grouped={};
+  const grouped={};
 
   events.forEach(e=>{
-    var d=new Date(e.start);
-    if(d<now || d>end) return;
-
-    var key=d.toDateString();
+    const d=new Date(e.start);
+    const key=d.toDateString();
     if(!grouped[key]) grouped[key]=[];
     grouped[key].push(e);
   });
 
-  var html="";
+  let html="";
 
   Object.keys(grouped).forEach(day=>{
 
-    var list=grouped[day];
-
-    /* Heat bar scale */
-
-    var heat=Math.min(list.length*20,100);
-
     html+="<div class='dayBlock'>";
     html+="<div class='dayTitle'>"+day+"</div>";
-    html+="<div class='heatBar'><div class='heatFill' style='width:"+heat+"%'></div></div>";
 
-    /* Free time gap detection */
+    grouped[day].forEach(e=>{
 
-    list.sort((a,b)=>new Date(a.start)-new Date(b.start));
-
-    var prev=null;
-
-    list.forEach(e=>{
-
-      var d=new Date(e.start);
-
-      if(prev){
-        var gap=(d-prev)/3600000;
-        if(gap>3){
-          html+="<div class='freeBlock'>Free "+gap.toFixed(1)+" hrs</div>";
-        }
-      }
+      const d=new Date(e.start);
 
       html+="<div class='eventRow'>";
       html+="<div class='timeCol'>"+
-        d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+
+        d.toLocaleTimeString([],{
+          hour:"2-digit",minute:"2-digit"
+        })+
       "</div>";
-      html+="<div class='eventCol'><div class='eventTitle'>"+
-        e.title+
-      "</div></div>";
+      html+="<div class='eventTitle'>"+e.title+"</div>";
       html+="</div>";
-
-      prev=d;
 
     });
 
@@ -327,45 +193,44 @@ function renderCalendar(events){
 }
 
 
-/* ---------- HOT TUB ---------- */
+/* ---------- COUNTDOWN ---------- */
 
-function fmt1(x){
-  var n=Number(x);
-  if(!isFinite(n)) return "-";
-  return n.toFixed(1);
+function renderCountdown(events){
+
+  const now=new Date();
+  let next=null;
+
+  events.forEach(e=>{
+    const d=new Date(e.start);
+    if(d>now && (!next||d<next)) next=d;
+  });
+
+  if(!next){
+    countdown.innerHTML="No upcoming events";
+    return;
+  }
+
+  function update(){
+    const diff=next-new Date();
+    const h=Math.floor(diff/3600000);
+    const m=Math.floor((diff%3600000)/60000);
+    countdown.innerHTML=
+      "Next event in "+h+"h "+m+"m";
+  }
+
+  update();
+  setInterval(update,60000);
+
 }
 
-function trendSymbol(c,a){
-  var d=c-a;
-  if(Math.abs(d)<0.2) return "→";
-  return d>0?"↑":"↓";
-}
+
+/* ---------- TUB ---------- */
 
 function renderTub(d){
 
-  var html="";
-
-  html+="<div class='tempBig'>";
-  html+=fmt1(d.current)+"°";
-  html+="<span class='trend'>"+
-    trendSymbol(d.current,d.avg)+
-  "</span>";
-  html+="<span class='dot'></span>";
-  html+="</div>";
-
-  html+="<div class='statRow'>";
-  html+="Min "+fmt1(d.min)+"°<br>";
-  html+="Max "+fmt1(d.max)+"°<br>";
-  html+="Avg "+fmt1(d.avg)+"°";
-  html+="</div>";
-
-  html+="<div class='small'>";
-  html+="Updated "+
-    new Date(d.as_of)
-      .toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-  html+="</div>";
-
-  tub.innerHTML=html;
+  tub.innerHTML=
+    "<div class='big'>"+d.current+"°</div>"+
+    "<div class='small'>Avg "+d.avg+"°</div>";
 
 }
 
@@ -378,28 +243,13 @@ fetch(
 .then(r=>r.json())
 .then(data=>{
 
-  var w=data.current_weather;
+  const w=data.current_weather;
 
-  var html="";
-  html+="<div class='weatherTemp'>"+w.temperature+"°C</div>";
-  html+="<div class='weatherMeta'>";
-  html+="Wind "+w.windspeed+" km/h<br>";
-  html+="Dir "+w.winddirection+"°";
-  html+="</div>";
-
-  html+="<div class='small'>Updated "+
-    new Date(w.time)
-      .toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+
-  "</div>";
-
-  weather.innerHTML=html;
+  weather.innerHTML=
+    "<div class='big'>"+w.temperature+"°C</div>"+
+    "<div class='small'>Wind "+w.windspeed+" km/h</div>";
 
 });
-
-
-/* ---------- AUTO REFRESH ---------- */
-
-setInterval(()=>location.reload(),600000);
 
 </script>
 
