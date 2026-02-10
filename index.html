@@ -2,66 +2,119 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>iPad Dashboard</title>
+<title>Home Dashboard</title>
 
 <style>
+
 body {
-  font-family: Arial, sans-serif;
-  background: #111;
-  color: #eee;
   margin: 0;
-  padding: 20px;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  background: #0c0e12;
+  color: #e8eaed;
+}
+
+.header {
+  font-size: 56px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-gap: 24px;
 }
 
 .panel {
-  background: #1c1c1c;
-  padding: 16px;
-  margin-bottom: 20px;
-  border-radius: 12px;
+  background: #161a22;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
 }
 
-h2 {
+.panel h2 {
   margin-top: 0;
+  font-size: 20px;
+  letter-spacing: .6px;
+  color: #9fb3ff;
+}
+
+.dayBlock {
+  margin-bottom: 18px;
+}
+
+.dayTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #7fa2ff;
+  margin-bottom: 6px;
 }
 
 .event {
-  margin-bottom: 12px;
+  font-size: 16px;
+  margin-bottom: 4px;
+  color: #e6e6e6;
+}
+
+.time {
+  color: #aab4c5;
 }
 
 .tempBig {
-  font-size: 36px;
-  font-weight: bold;
+  font-size: 52px;
+  font-weight: 600;
 }
 
-.trend {
-  font-size: 18px;
-  color: #aaa;
+.statRow {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #c6ccd6;
 }
 
 .small {
-  font-size: 12px;
-  color: #aaa;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #9aa3b2;
 }
+
+.weatherTemp {
+  font-size: 48px;
+  font-weight: 600;
+}
+
 </style>
 </head>
 
 <body>
 
-<!-- CLOCK -->
-<div class="panel">
-  <h2 id="clock">--:--</h2>
-</div>
+<div class="header" id="clock">--:--</div>
 
-<!-- CALENDAR -->
-<div class="panel">
-  <h2>Upcoming Events</h2>
-  <div id="events">Loading…</div>
-</div>
+<div class="grid">
 
-<!-- HOT TUB -->
-<div class="panel">
-  <h2>Hot Tub</h2>
-  <div id="tub">Loading…</div>
+  <!-- CALENDAR -->
+  <div class="panel">
+    <h2>Next 5 Days</h2>
+    <div id="calendar">Loading…</div>
+  </div>
+
+  <div>
+
+    <!-- WEATHER -->
+    <div class="panel">
+      <h2>Today</h2>
+      <div id="weather">Loading…</div>
+    </div>
+
+    <!-- HOT TUB -->
+    <div class="panel" style="margin-top:24px;">
+      <h2>Hot Tub</h2>
+      <div id="tub">Loading…</div>
+    </div>
+
+  </div>
+
 </div>
 
 <script>
@@ -70,131 +123,168 @@ h2 {
 // ---------- CLOCK ----------
 //
 
-function updateClock() {
+function updateClock(){
   var now = new Date();
   document.getElementById("clock").innerHTML =
     now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 }
 
 updateClock();
-setInterval(updateClock, 1000);
+setInterval(updateClock,1000);
 
 
 //
-// ---------- GOOGLE CALENDAR ----------
+// ---------- DATA ENDPOINT ----------
 //
 
-var feed =
-"https://calendar.google.com/calendar/ical/8fb34a1e4e02726e39bbe84dd616bdd4ef1b910b66fc928f6484795e95d257eb%40group.calendar.google.com/public/basic.ics";
+var api =
+"https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
 
-fetch(feed)
-.then(function(r){ return r.text(); })
-.then(function(text){
+fetch(api)
+.then(function(r){ return r.json(); })
+.then(function(data){
 
-  var events = text.split("BEGIN:VEVENT").slice(1);
-  var all = [];
+  renderCalendar(data.events);
+  renderTub(data);
 
-  events.forEach(function(e){
+});
 
-    var title = /SUMMARY:(.*)/.exec(e);
-    var date  = /DTSTART.*:(.*)/.exec(e);
 
-    if (!title || !date) return;
+//
+// ---------- CALENDAR ----------
+//
 
-    var raw = date[1].trim();
+function renderCalendar(events){
 
-    var y = raw.substring(0,4);
-    var m = raw.substring(4,6);
-    var d = raw.substring(6,8);
-    var h = raw.substring(9,11) || "00";
-    var min = raw.substring(11,13) || "00";
+  if(!events) return;
 
-    var obj = new Date(y, m-1, d, h, min);
+  var today = new Date();
+  var end = new Date();
+  end.setDate(today.getDate()+5);
 
-    if (obj > new Date()) {
-      all.push({
-        title: title[1],
-        date: obj
-      });
-    }
+  var filtered = events.filter(function(e){
+    var d = new Date(e.start);
+    return d >= today && d <= end;
+  });
+
+  filtered.sort(function(a,b){
+    return new Date(a.start) - new Date(b.start);
+  });
+
+  var grouped = {};
+
+  filtered.forEach(function(e){
+
+    var d = new Date(e.start);
+    var key = d.toDateString();
+
+    if(!grouped[key]) grouped[key] = [];
+    grouped[key].push(e);
 
   });
 
-  all.sort(function(a,b){
-    return a.date - b.date;
-  });
+  var html="";
 
-  var html = "";
+  Object.keys(grouped).forEach(function(day){
 
-  all.slice(0,15).forEach(function(e){
+    html += "<div class='dayBlock'>";
+    html += "<div class='dayTitle'>"+day+"</div>";
 
-    html += "<div class='event'>";
-    html += "<b>" + e.title + "</b><br>";
-    html += e.date.toLocaleString();
+    grouped[day].forEach(function(e){
+
+      var d = new Date(e.start);
+
+      html += "<div class='event'>";
+      html += "<span class='time'>";
+      html += d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+      html += "</span> — "+e.title;
+      html += "</div>";
+
+    });
+
     html += "</div>";
 
   });
 
-  document.getElementById("events").innerHTML = html;
+  document.getElementById("calendar").innerHTML = html;
 
-});
+}
 
 
 //
 // ---------- HOT TUB ----------
 //
 
-var tubURL =
-"https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
-
-function fmt1(x) {
+function fmt1(x){
   var n = Number(x);
-  if (!isFinite(n)) return "-";
+  if(!isFinite(n)) return "-";
   return n.toFixed(1);
 }
 
-function trendSymbol(c,a) {
-  var d = c - a;
-  if (Math.abs(d) < 0.2) return "→";
-  return d > 0 ? "↑" : "↓";
+function trendSymbol(c,a){
+  var d=c-a;
+  if(Math.abs(d)<0.2) return "→";
+  return d>0 ? "↑":"↓";
 }
 
-function lastTime(s) {
-  var d = new Date(s);
-  if (isNaN(d)) return "--:--";
-  return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+function renderTub(d){
+
+  var html="";
+
+  html+="<div class='tempBig'>";
+  html+=fmt1(d.current)+"° ";
+  html+="<span style='font-size:22px;color:#9aa3b2'>";
+  html+=trendSymbol(d.current,d.avg);
+  html+="</span></div>";
+
+  html+="<div class='statRow'>";
+  html+="Min "+fmt1(d.min)+"°<br>";
+  html+="Max "+fmt1(d.max)+"°<br>";
+  html+="Avg "+fmt1(d.avg)+"°";
+  html+="</div>";
+
+  html+="<div class='small'>";
+  html+="Updated "+
+    new Date(d.as_of).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  html+="</div>";
+
+  document.getElementById("tub").innerHTML=html;
+
 }
 
-function loadTub() {
 
-  fetch(tubURL)
-  .then(function(r){ return r.json(); })
-  .then(function(data){
+//
+// ---------- WEATHER ----------
+//
 
-    var html = "";
+var lat = 43.945;
+var lon = -78.895;
 
-    html += "<div class='tempBig'>";
-    html += fmt1(data.current) + "° ";
-    html += "<span class='trend'>";
-    html += trendSymbol(data.current,data.avg);
-    html += "</span></div>";
+fetch(
+"https://api.open-meteo.com/v1/forecast?latitude="+lat+
+"&longitude="+lon+
+"&current_weather=true"
+)
+.then(function(r){ return r.json(); })
+.then(function(data){
 
-    html += "<div style='margin-top:10px'>";
-    html += "<b>MIN:</b> " + fmt1(data.min) + "°<br>";
-    html += "<b>MAX:</b> " + fmt1(data.max) + "°<br>";
-    html += "<b>AVG:</b> " + fmt1(data.avg) + "°";
-    html += "</div>";
+  var w=data.current_weather;
 
-    html += "<div class='small' style='margin-top:10px'>";
-    html += "Updated " + lastTime(data.as_of);
-    html += "</div>";
+  var html="";
 
-    document.getElementById("tub").innerHTML = html;
+  html+="<div class='weatherTemp'>"+w.temperature+"°C</div>";
+  html+="<div class='statRow'>";
+  html+="Wind "+w.windspeed+" km/h";
+  html+="</div>";
 
-  });
-}
+  html+="<div class='small'>";
+  html+="Updated "+
+    new Date(w.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  html+="</div>";
 
-loadTub();
+  document.getElementById("weather").innerHTML=html;
+
+});
 
 
 //
@@ -203,7 +293,7 @@ loadTub();
 
 setInterval(function(){
   location.reload();
-}, 600000); // 10 minutes
+},600000);
 
 </script>
 
