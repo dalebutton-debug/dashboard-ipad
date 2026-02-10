@@ -17,7 +17,6 @@ body {
 .header {
   font-size: 56px;
   font-weight: 600;
-  letter-spacing: 1px;
   margin-bottom: 24px;
 }
 
@@ -37,7 +36,6 @@ body {
 .panel h2 {
   margin-top: 0;
   font-size: 20px;
-  letter-spacing: .6px;
   color: #9fb3ff;
 }
 
@@ -55,7 +53,6 @@ body {
 .event {
   font-size: 16px;
   margin-bottom: 4px;
-  color: #e6e6e6;
 }
 
 .time {
@@ -128,21 +125,20 @@ function updateClock(){
   document.getElementById("clock").innerHTML =
     now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
 }
-
 updateClock();
 setInterval(updateClock,1000);
 
 
 //
-// ---------- DATA ENDPOINT ----------
+// ---------- DATA ----------
 //
 
 var api =
 "https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
 
 fetch(api)
-.then(function(r){ return r.json(); })
-.then(function(data){
+.then(r => r.json())
+.then(data => {
 
   renderCalendar(data.events);
   renderTub(data);
@@ -156,41 +152,31 @@ fetch(api)
 
 function renderCalendar(events){
 
-  if(!events) return;
-
-  var today = new Date();
-  var end = new Date();
-  end.setDate(today.getDate()+5);
-
-  var filtered = events.filter(function(e){
-    var d = new Date(e.start);
-    return d >= today && d <= end;
-  });
-
-  filtered.sort(function(a,b){
-    return new Date(a.start) - new Date(b.start);
-  });
+  if(!events || events.length===0){
+    document.getElementById("calendar").innerHTML="No events";
+    return;
+  }
 
   var grouped = {};
 
-  filtered.forEach(function(e){
+  events.forEach(e => {
 
     var d = new Date(e.start);
     var key = d.toDateString();
 
-    if(!grouped[key]) grouped[key] = [];
+    if(!grouped[key]) grouped[key]=[];
     grouped[key].push(e);
 
   });
 
   var html="";
 
-  Object.keys(grouped).forEach(function(day){
+  Object.keys(grouped).forEach(day => {
 
     html += "<div class='dayBlock'>";
     html += "<div class='dayTitle'>"+day+"</div>";
 
-    grouped[day].forEach(function(e){
+    grouped[day].forEach(e => {
 
       var d = new Date(e.start);
 
@@ -216,7 +202,7 @@ function renderCalendar(events){
 //
 
 function fmt1(x){
-  var n = Number(x);
+  var n=Number(x);
   if(!isFinite(n)) return "-";
   return n.toFixed(1);
 }
@@ -224,7 +210,7 @@ function fmt1(x){
 function trendSymbol(c,a){
   var d=c-a;
   if(Math.abs(d)<0.2) return "→";
-  return d>0 ? "↑":"↓";
+  return d>0?"↑":"↓";
 }
 
 function renderTub(d){
@@ -257,30 +243,20 @@ function renderTub(d){
 // ---------- WEATHER ----------
 //
 
-var lat = 43.945;
-var lon = -78.895;
-
 fetch(
-"https://api.open-meteo.com/v1/forecast?latitude="+lat+
-"&longitude="+lon+
-"&current_weather=true"
+"https://api.open-meteo.com/v1/forecast?latitude=43.945&longitude=-78.895&current_weather=true"
 )
-.then(function(r){ return r.json(); })
-.then(function(data){
+.then(r=>r.json())
+.then(data=>{
 
   var w=data.current_weather;
 
   var html="";
-
   html+="<div class='weatherTemp'>"+w.temperature+"°C</div>";
-  html+="<div class='statRow'>";
-  html+="Wind "+w.windspeed+" km/h";
-  html+="</div>";
-
-  html+="<div class='small'>";
-  html+="Updated "+
-    new Date(w.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-  html+="</div>";
+  html+="<div class='statRow'>Wind "+w.windspeed+" km/h</div>";
+  html+="<div class='small'>Updated "+
+    new Date(w.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+
+    "</div>";
 
   document.getElementById("weather").innerHTML=html;
 
@@ -291,7 +267,7 @@ fetch(
 // ---------- AUTO REFRESH ----------
 //
 
-setInterval(function(){
+setInterval(()=>{
   location.reload();
 },600000);
 
