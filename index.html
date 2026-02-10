@@ -47,13 +47,18 @@ h2 {
 
 <body>
 
-<!-- CALENDAR PANEL -->
+<!-- CLOCK -->
+<div class="panel">
+  <h2 id="clock">--:--</h2>
+</div>
+
+<!-- CALENDAR -->
 <div class="panel">
   <h2>Upcoming Events</h2>
   <div id="events">Loading…</div>
 </div>
 
-<!-- HOT TUB PANEL -->
+<!-- HOT TUB -->
 <div class="panel">
   <h2>Hot Tub</h2>
   <div id="tub">Loading…</div>
@@ -61,31 +66,42 @@ h2 {
 
 <script>
 
-// ---------------- CALENDAR ----------------
+//
+// ---------- CLOCK ----------
+//
 
-var feeds = [
-"https://outlook.office365.com/owa/calendar/26af0980c8354a26a02a157aca7c61c6@lh.ca/ecf9456d8fed4157a761807943ffcfc34672887921678293043/calendar.ics",
-"https://outlook.office365.com/owa/calendar/a73a88e8b34242d8845eda9c62f6c67a@durhamcollege.ca/4be00c81d0f548fe96a314a617fff1886005420293310136848/calendar.ics",
-"https://outlook.office365.com/owa/calendar/a73a88e8b34242d8845eda9c62f6c67a@durhamcollege.ca/c1e535ab93314041868b04a20b60ebbe1802079075628489542/calendar.ics",
-"https://outlook.office365.com/owa/calendar/a73a88e8b34242d8845eda9c62f6c67a@durhamcollege.ca/2519e462712049f98923d6bf5801718715481006410580993002/calendar.ics",
-"https://outlook.office365.com/owa/calendar/a73a88e8b34242d8845eda9c62f6c67a@durhamcollege.ca/9328da784b1545b6995d90ef2824d4349347600389197576626/calendar.ics"
-];
+function updateClock() {
+  var now = new Date();
+  document.getElementById("clock").innerHTML =
+    now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+}
 
-var allEvents = [];
-var loaded = 0;
+updateClock();
+setInterval(updateClock, 1000);
 
-function parseICS(text) {
+
+//
+// ---------- GOOGLE CALENDAR ----------
+//
+
+var feed =
+"https://calendar.google.com/calendar/ical/8fb34a1e4e02726e39bbe84dd616bdd4ef1b910b66fc928f6484795e95d257eb%40group.calendar.google.com/private-b5ef73959bf361ecab33091694e9e6b5/basic.ics";
+
+fetch(feed)
+.then(function(r){ return r.text(); })
+.then(function(text){
 
   var events = text.split("BEGIN:VEVENT").slice(1);
+  var all = [];
 
   events.forEach(function(e){
 
-    var titleMatch = /SUMMARY:(.*)/.exec(e);
-    var dateMatch  = /DTSTART.*:(.*)/.exec(e);
+    var title = /SUMMARY:(.*)/.exec(e);
+    var date  = /DTSTART.*:(.*)/.exec(e);
 
-    if (!titleMatch || !dateMatch) return;
+    if (!title || !date) return;
 
-    var raw = dateMatch[1].trim();
+    var raw = date[1].trim();
 
     var y = raw.substring(0,4);
     var m = raw.substring(4,6);
@@ -93,49 +109,43 @@ function parseICS(text) {
     var h = raw.substring(9,11) || "00";
     var min = raw.substring(11,13) || "00";
 
-    var dateObj = new Date(y, m-1, d, h, min);
+    var obj = new Date(y, m-1, d, h, min);
 
-    if (dateObj > new Date()) {
-      allEvents.push({
-        title: titleMatch[1],
-        date: dateObj
+    if (obj > new Date()) {
+      all.push({
+        title: title[1],
+        date: obj
       });
     }
 
   });
 
-  loaded++;
-  if (loaded === feeds.length) renderEvents();
-}
-
-feeds.forEach(function(url){
-  fetch(url)
-    .then(function(r){ return r.text(); })
-    .then(parseICS);
-});
-
-function renderEvents() {
-
-  allEvents.sort(function(a,b){
+  all.sort(function(a,b){
     return a.date - b.date;
   });
 
-  var next = allEvents.slice(0,15);
   var html = "";
 
-  next.forEach(function(e){
+  all.slice(0,15).forEach(function(e){
+
     html += "<div class='event'>";
     html += "<b>" + e.title + "</b><br>";
     html += e.date.toLocaleString();
     html += "</div>";
+
   });
 
   document.getElementById("events").innerHTML = html;
-}
 
-// ---------------- HOT TUB ----------------
+});
 
-var tubURL = "https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
+
+//
+// ---------- HOT TUB ----------
+//
+
+var tubURL =
+"https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
 
 function fmt1(x) {
   var n = Number(x);
@@ -165,9 +175,9 @@ function loadTub() {
 
     html += "<div class='tempBig'>";
     html += fmt1(data.current) + "° ";
-    html += "<span class='trend'>" +
-            trendSymbol(data.current,data.avg) +
-            "</span></div>";
+    html += "<span class='trend'>";
+    html += trendSymbol(data.current,data.avg);
+    html += "</span></div>";
 
     html += "<div style='margin-top:10px'>";
     html += "<b>MIN:</b> " + fmt1(data.min) + "°<br>";
@@ -186,11 +196,14 @@ function loadTub() {
 
 loadTub();
 
-// ------------- AUTO REFRESH -------------
+
+//
+// ---------- AUTO REFRESH ----------
+//
 
 setInterval(function(){
   location.reload();
-}, 600000);
+}, 600000); // 10 minutes
 
 </script>
 
