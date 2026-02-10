@@ -5,112 +5,151 @@
 <title>Home Dashboard</title>
 
 <style>
+:root{
+  --bg:#0b0f14;
+  --panel:#131821;
+  --panel-2:#10151d;
+  --text:#e6e9ef;
+  --muted:#9aa6b5;
+  --accent:#7fa2ff;
+  --divider:#1e2530;
+  --dim:0; /* 0..0.35 */
+  --shadow:0 8px 24px rgba(0,0,0,.35);
+}
+
+*{ box-sizing:border-box; }
 
 body{
   margin:0;
-  padding:24px;
-  font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
-  background:#0b0f14;
-  color:#e6e9ef;
+  padding:20px;
+  font-family:-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  letter-spacing:.2px;
 }
 
-/* ---------- CLOCK ---------- */
+/* global dimming */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:#000;
+  opacity:var(--dim);
+  pointer-events:none;
+  transition:opacity 1.2s ease;
+  z-index:10;
+}
 
 .header{
-  font-size:64px;
+  font-size:60px;
   font-weight:600;
+  line-height:1;
 }
 
 .subHeader{
-  font-size:18px;
-  color:#9aa6b5;
-  margin-top:4px;
+  font-size:16px;
+  color:var(--muted);
+  margin-top:6px;
 }
-
-/* ---------- GRID ---------- */
 
 .grid{
   display:grid;
-  grid-template-columns:2.2fr 1fr;
-  gap:18px;
-  margin-top:20px;
+  grid-template-columns:2.1fr 1fr;
+  gap:16px;
+  margin-top:18px;
 }
 
-/* ---------- PANELS ---------- */
-
 .panel{
-  background:#141922;
-  border-radius:18px;
-  padding:18px;
+  background:var(--panel);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:var(--shadow);
+}
+
+/* subtle section divider */
+.section{
+  padding-top:10px;
+  margin-top:10px;
+  border-top:1px solid var(--divider);
 }
 
 /* ---------- SHIFT BANNER ---------- */
-
 .shiftBanner{
-  font-size:18px;
-  padding:8px 12px;
+  font-size:16px;
+  padding:6px 10px;
   border-radius:10px;
   display:inline-block;
-  margin-bottom:12px;
+  margin-bottom:10px;
 }
-
 .shift-OFF{ background:#2a2f3a; }
 .shift-SHIFT{ background:#7a2e2e; }
 .shift-TEACHING{ background:#2e4e7a; }
 
-/* ---------- CALENDAR ---------- */
-
-.dayBlock{ margin-bottom:16px; }
-
-.dayTitle{
-  font-weight:600;
-  color:#7fa2ff;
-  margin-bottom:6px;
-}
-
-.eventRow{
-  display:flex;
-  margin-bottom:4px;
-}
-
-.timeCol{
-  width:64px;
-  color:#9aa6b5;
-}
-
-.eventTitle{ flex:1; }
-
 /* ---------- NOW NEXT ---------- */
-
 .nowNext{
-  font-size:16px;
-  margin-bottom:12px;
+  font-size:15px;
+  margin-bottom:8px;
   color:#c7d0df;
 }
 
+/* ---------- CALENDAR ---------- */
+.dayBlock{ margin-bottom:10px; }
+.dayTitle{
+  font-weight:600;
+  color:var(--accent);
+  font-size:14px;
+  margin-bottom:4px;
+}
+.eventRow{
+  display:flex;
+  align-items:baseline;
+  margin-bottom:2px;
+  font-size:14px;
+  line-height:1.25;
+}
+.timeCol{
+  width:54px;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.eventTitle{
+  flex:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
 /* ---------- WEATHER ---------- */
-
-.big{ font-size:44px; font-weight:600; }
-
+.big{ font-size:40px; font-weight:600; }
 .small{
-  font-size:13px;
+  font-size:12px;
   color:#8b94a3;
-  margin-top:4px;
+  margin-top:3px;
 }
 
 /* ---------- TUB ---------- */
-
 .tubTemp{
-  font-size:42px;
+  font-size:38px;
   font-weight:600;
 }
-
 .statGrid{
-  margin-top:8px;
-  font-size:14px;
-  color:#9aa6b5;
+  margin-top:6px;
+  font-size:13px;
+  color:var(--muted);
 }
 
+/* compact right column panels */
+.rightPanel{ padding:14px 16px; }
+
+@media (max-width:980px){
+  .grid{ grid-template-columns:1fr; }
+  .header{ font-size:52px; }
+}
+
+/* reduce motion on older hardware */
+@media (prefers-reduced-motion: reduce){
+  body::before{ transition:none; }
+}
 </style>
 </head>
 
@@ -128,18 +167,18 @@ body{
 
     <div class="nowNext" id="nowNext"></div>
 
-    <div id="calendar">Loading…</div>
+    <div class="section" id="calendar">Loading…</div>
 
   </div>
 
   <!-- RIGHT COLUMN -->
   <div>
 
-    <div class="panel">
+    <div class="panel rightPanel">
       <div id="weather">Loading…</div>
     </div>
 
-    <div class="panel" style="margin-top:18px;">
+    <div class="panel rightPanel" style="margin-top:16px;">
       <div id="tub">Loading…</div>
     </div>
 
@@ -148,13 +187,11 @@ body{
 </div>
 
 <script>
-
 /* ======================================================
    CLOCK
 ====================================================== */
-
 function tick(){
-  clock.innerHTML =
+  clock.textContent =
     new Date().toLocaleTimeString([],{
       hour:"2-digit",minute:"2-digit"
     });
@@ -162,61 +199,45 @@ function tick(){
 tick();
 setInterval(tick,1000);
 
-
 /* ======================================================
    LOAD DATA
 ====================================================== */
-
 const api =
 "https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
 
 function loadData(){
-
   fetch(api)
   .then(r=>r.json())
   .then(data=>{
-
     renderShift(data.shift_state);
     renderNowNext(data);
     renderCalendar(data.events);
     renderWeather(data.weather);
     renderTub(data);
     renderCountdown(data.next_event);
-
   });
-
 }
-
 loadData();
 setInterval(loadData,600000);
-
 
 /* ======================================================
    SHIFT STATE
 ====================================================== */
-
 function renderShift(state){
-
   shift.innerHTML =
     "<div class='shiftBanner shift-"+state+"'>"+
     state+
     "</div>";
-
 }
-
 
 /* ======================================================
    NOW / NEXT
 ====================================================== */
-
 function renderNowNext(data){
-
   let html="";
-
   if(data.now_event){
     html+="Now: "+data.now_event.title+"<br>";
   }
-
   if(data.next_event){
     const d=new Date(data.next_event.start);
     html+="Next: "+
@@ -225,25 +246,19 @@ function renderNowNext(data){
       })+
       " "+data.next_event.title;
   }
-
   nowNext.innerHTML=html;
-
 }
-
 
 /* ======================================================
    CALENDAR
 ====================================================== */
-
 function renderCalendar(events){
-
   if(!events.length){
     calendar.innerHTML="No events";
     return;
   }
 
   const grouped={};
-
   events.forEach(e=>{
     const d=new Date(e.start);
     const key=d.toDateString();
@@ -252,16 +267,11 @@ function renderCalendar(events){
   });
 
   let html="";
-
   Object.keys(grouped).forEach(day=>{
-
     html+="<div class='dayBlock'>";
     html+="<div class='dayTitle'>"+day+"</div>";
-
     grouped[day].forEach(e=>{
-
       const d=new Date(e.start);
-
       html+="<div class='eventRow'>";
       html+="<div class='timeCol'>"+
         d.toLocaleTimeString([],{
@@ -270,36 +280,26 @@ function renderCalendar(events){
       "</div>";
       html+="<div class='eventTitle'>"+e.title+"</div>";
       html+="</div>";
-
     });
-
     html+="</div>";
-
   });
 
   calendar.innerHTML=html;
-
 }
-
 
 /* ======================================================
    WEATHER
 ====================================================== */
-
 function renderWeather(w){
-
   weather.innerHTML=
     "<div class='big'>"+w.current+"°C</div>"+
     "<div class='small'>Hi "+w.high+
     "°  Low "+w.low+"°</div>";
-
 }
-
 
 /* ======================================================
    TUB
 ====================================================== */
-
 function trend(c,a){
   const d=c-a;
   if(Math.abs(d)<0.2) return "→";
@@ -307,19 +307,16 @@ function trend(c,a){
 }
 
 function renderTub(d){
-
   tub.innerHTML=
     "<div class='tubTemp'>"+
       d.current+"° "+
       trend(d.current,d.avg)+
     "</div>"+
-
     "<div class='statGrid'>"+
       "Min "+d.min+"°  "+
       "Max "+d.max+"°  "+
       "Avg "+d.avg+"°"+
     "</div>"+
-
     "<div class='small'>"+
       "Updated "+
       new Date(d.as_of)
@@ -328,39 +325,65 @@ function renderTub(d){
           minute:"2-digit"
         })+
     "</div>";
-
 }
-
 
 /* ======================================================
    COUNTDOWN
 ====================================================== */
-
 function renderCountdown(next){
-
   if(!next){
     countdown.innerHTML="No upcoming events";
     return;
   }
-
   const nextDate=new Date(next.start);
-
   function update(){
-
     const diff=nextDate-new Date();
     const h=Math.floor(diff/3600000);
     const m=Math.floor((diff%3600000)/60000);
-
     countdown.innerHTML=
       "Next event in "+h+"h "+m+"m";
-
   }
-
   update();
   setInterval(update,60000);
-
 }
 
+/* ======================================================
+   AUTO DIM (time of day)
+   - Simple, lightweight, no timers beyond 1/min
+====================================================== */
+function setAutoDim(){
+  const now=new Date();
+  const h=now.getHours();
+  // dim between 20:00 and 06:00
+  let dim=0;
+  if(h>=20 || h<6){
+    // ramp: max 0.28
+    const nightHours = h>=20 ? h-20 : h+4; // 0..9
+    dim = Math.min(0.28, nightHours * 0.04);
+  }
+  document.documentElement.style.setProperty("--dim", dim.toFixed(2));
+}
+setAutoDim();
+setInterval(setAutoDim,60000);
+
+/* ======================================================
+   OPTIONAL INACTIVITY DIM
+   - Uncomment to enable dim after 3 min idle
+====================================================== */
+/*
+let idleTimer;
+function resetIdle(){
+  document.documentElement.style.setProperty("--dim", "0.00");
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(()=>{
+    document.documentElement.style.setProperty("--dim", "0.20");
+  }, 180000);
+}
+["touchstart","mousemove","keydown"].forEach(evt=>{
+  window.addEventListener(evt, resetIdle, {passive:true});
+});
+resetIdle();
+*/
 </script>
 
 </body>
