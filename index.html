@@ -2,28 +2,32 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Dashboard</title>
+<title>Home Dashboard</title>
 
 <style>
 
 body{
   margin:0;
-  padding:22px;
+  padding:24px;
   font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
   background:#0b0f14;
   color:#e6e9ef;
 }
+
+/* ---------- CLOCK ---------- */
 
 .header{
   font-size:64px;
   font-weight:600;
 }
 
-.countdown{
+.subHeader{
   font-size:18px;
   color:#9aa6b5;
   margin-top:4px;
 }
+
+/* ---------- GRID ---------- */
 
 .grid{
   display:grid;
@@ -32,17 +36,31 @@ body{
   margin-top:20px;
 }
 
+/* ---------- PANELS ---------- */
+
 .panel{
   background:#141922;
   border-radius:18px;
   padding:18px;
 }
 
+/* ---------- SHIFT BANNER ---------- */
+
+.shiftBanner{
+  font-size:18px;
+  padding:8px 12px;
+  border-radius:10px;
+  display:inline-block;
+  margin-bottom:12px;
+}
+
+.shift-OFF{ background:#2a2f3a; }
+.shift-SHIFT{ background:#7a2e2e; }
+.shift-TEACHING{ background:#2e4e7a; }
+
 /* ---------- CALENDAR ---------- */
 
-.dayBlock{
-  margin-bottom:14px;
-}
+.dayBlock{ margin-bottom:16px; }
 
 .dayTitle{
   font-weight:600;
@@ -60,20 +78,37 @@ body{
   color:#9aa6b5;
 }
 
-.eventTitle{
-  flex:1;
+.eventTitle{ flex:1; }
+
+/* ---------- NOW NEXT ---------- */
+
+.nowNext{
+  font-size:16px;
+  margin-bottom:12px;
+  color:#c7d0df;
 }
 
-/* ---------- WEATHER / TUB ---------- */
+/* ---------- WEATHER ---------- */
 
-.big{
-  font-size:46px;
-  font-weight:600;
-}
+.big{ font-size:44px; font-weight:600; }
 
 .small{
   font-size:13px;
   color:#8b94a3;
+  margin-top:4px;
+}
+
+/* ---------- TUB ---------- */
+
+.tubTemp{
+  font-size:42px;
+  font-weight:600;
+}
+
+.statGrid{
+  margin-top:8px;
+  font-size:14px;
+  color:#9aa6b5;
 }
 
 </style>
@@ -82,14 +117,22 @@ body{
 <body>
 
 <div class="header" id="clock">--:--</div>
-<div class="countdown" id="countdown">Loading…</div>
+<div class="subHeader" id="countdown">Loading…</div>
 
 <div class="grid">
 
+  <!-- LEFT COLUMN -->
   <div class="panel">
+
+    <div id="shift"></div>
+
+    <div class="nowNext" id="nowNext"></div>
+
     <div id="calendar">Loading…</div>
+
   </div>
 
+  <!-- RIGHT COLUMN -->
   <div>
 
     <div class="panel">
@@ -106,7 +149,9 @@ body{
 
 <script>
 
-/* ---------- CLOCK ---------- */
+/* ======================================================
+   CLOCK
+====================================================== */
 
 function tick(){
   clock.innerHTML =
@@ -118,7 +163,9 @@ tick();
 setInterval(tick,1000);
 
 
-/* ---------- LOAD DATA ---------- */
+/* ======================================================
+   LOAD DATA
+====================================================== */
 
 const api =
 "https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
@@ -129,12 +176,12 @@ function loadData(){
   .then(r=>r.json())
   .then(data=>{
 
-    requestAnimation hookupFrame(()=>{
-      renderCalendar(data.events);
-    });
-
+    renderShift(data.shift_state);
+    renderNowNext(data);
+    renderCalendar(data.events);
+    renderWeather(data.weather);
     renderTub(data);
-    renderCountdown(data.events);
+    renderCountdown(data.next_event);
 
   });
 
@@ -144,7 +191,49 @@ loadData();
 setInterval(loadData,600000);
 
 
-/* ---------- CALENDAR ---------- */
+/* ======================================================
+   SHIFT STATE
+====================================================== */
+
+function renderShift(state){
+
+  shift.innerHTML =
+    "<div class='shiftBanner shift-"+state+"'>"+
+    state+
+    "</div>";
+
+}
+
+
+/* ======================================================
+   NOW / NEXT
+====================================================== */
+
+function renderNowNext(data){
+
+  let html="";
+
+  if(data.now_event){
+    html+="Now: "+data.now_event.title+"<br>";
+  }
+
+  if(data.next_event){
+    const d=new Date(data.next_event.start);
+    html+="Next: "+
+      d.toLocaleTimeString([],{
+        hour:"2-digit",minute:"2-digit"
+      })+
+      " "+data.next_event.title;
+  }
+
+  nowNext.innerHTML=html;
+
+}
+
+
+/* ======================================================
+   CALENDAR
+====================================================== */
 
 function renderCalendar(events){
 
@@ -193,63 +282,84 @@ function renderCalendar(events){
 }
 
 
-/* ---------- COUNTDOWN ---------- */
+/* ======================================================
+   WEATHER
+====================================================== */
 
-function renderCountdown(events){
+function renderWeather(w){
 
-  const now=new Date();
-  let next=null;
+  weather.innerHTML=
+    "<div class='big'>"+w.current+"°C</div>"+
+    "<div class='small'>Hi "+w.high+
+    "°  Low "+w.low+"°</div>";
 
-  events.forEach(e=>{
-    const d=new Date(e.start);
-    if(d>now && (!next||d<next)) next=d;
-  });
+}
+
+
+/* ======================================================
+   TUB
+====================================================== */
+
+function trend(c,a){
+  const d=c-a;
+  if(Math.abs(d)<0.2) return "→";
+  return d>0?"↑":"↓";
+}
+
+function renderTub(d){
+
+  tub.innerHTML=
+    "<div class='tubTemp'>"+
+      d.current+"° "+
+      trend(d.current,d.avg)+
+    "</div>"+
+
+    "<div class='statGrid'>"+
+      "Min "+d.min+"°  "+
+      "Max "+d.max+"°  "+
+      "Avg "+d.avg+"°"+
+    "</div>"+
+
+    "<div class='small'>"+
+      "Updated "+
+      new Date(d.as_of)
+        .toLocaleTimeString([],{
+          hour:"2-digit",
+          minute:"2-digit"
+        })+
+    "</div>";
+
+}
+
+
+/* ======================================================
+   COUNTDOWN
+====================================================== */
+
+function renderCountdown(next){
 
   if(!next){
     countdown.innerHTML="No upcoming events";
     return;
   }
 
+  const nextDate=new Date(next.start);
+
   function update(){
-    const diff=next-new Date();
+
+    const diff=nextDate-new Date();
     const h=Math.floor(diff/3600000);
     const m=Math.floor((diff%3600000)/60000);
+
     countdown.innerHTML=
       "Next event in "+h+"h "+m+"m";
+
   }
 
   update();
   setInterval(update,60000);
 
 }
-
-
-/* ---------- TUB ---------- */
-
-function renderTub(d){
-
-  tub.innerHTML=
-    "<div class='big'>"+d.current+"°</div>"+
-    "<div class='small'>Avg "+d.avg+"°</div>";
-
-}
-
-
-/* ---------- WEATHER ---------- */
-
-fetch(
-"https://api.open-meteo.com/v1/forecast?latitude=43.945&longitude=-78.895&current_weather=true"
-)
-.then(r=>r.json())
-.then(data=>{
-
-  const w=data.current_weather;
-
-  weather.innerHTML=
-    "<div class='big'>"+w.temperature+"°C</div>"+
-    "<div class='small'>Wind "+w.windspeed+" km/h</div>";
-
-});
 
 </script>
 
