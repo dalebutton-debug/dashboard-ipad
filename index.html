@@ -81,8 +81,8 @@ body::before{
 .dayTitle{
   font-weight:600;
   color:var(--accent);
-  font-size:13px;
-  margin-bottom:4px;
+  font-size:14px;
+  margin-bottom:5px;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -91,16 +91,16 @@ body::before{
 .eventRow{
   display:flex;
   align-items:baseline;
-  font-size:13px;
-  line-height:1.2;
-  margin-bottom:2px;
+  font-size:15px;         /* bigger */
+  line-height:1.25;       /* a touch more breathing room */
+  margin-bottom:3px;
 }
 
 .timeCol{
-  width:60px;
+  width:64px;             /* slightly wider for AM/PM */
   color:var(--muted);
   font-variant-numeric:tabular-nums;
-  white-space:nowrap; /* keep time + AM/PM together */
+  white-space:nowrap;
 }
 
 .eventTitle{
@@ -194,9 +194,18 @@ function renderShift(state){
 }
 
 /* ======================================================
-   NOW / NEXT
+   NOW / NEXT (cached)
 ====================================================== */
+let lastNowNextKey="";
+
 function renderNowNext(data){
+  const nowTitle = data.now_event ? data.now_event.title : "";
+  const nextTitle = data.next_event ? data.next_event.title : "";
+  const nextTime = data.next_event ? data.next_event.start : "";
+  const key = nowTitle+"|"+nextTitle+"|"+nextTime;
+
+  if(key === lastNowNextKey) return;
+
   let html="";
   if(data.now_event){
     html+="Now: "+data.now_event.title+"<br>";
@@ -208,6 +217,7 @@ function renderNowNext(data){
       " "+data.next_event.title;
   }
   nowNext.innerHTML=html;
+  lastNowNextKey=key;
 }
 
 /* ======================================================
@@ -228,7 +238,7 @@ function renderCalendar(events){
 
   const key = events.map(e=>e.start+"|"+e.title).join(";");
   if(key === lastEventsKey && lastCalendarHTML){
-    return; // skip re-render
+    return;
   }
 
   const grouped = {};
@@ -267,25 +277,31 @@ function renderCalendar(events){
 }
 
 /* ======================================================
-   WEATHER
+   WEATHER (cached)
 ====================================================== */
+let lastWeatherKey="";
+
 function renderWeather(w){
+  const key = w.current+"|"+w.high+"|"+w.low;
+  if(key === lastWeatherKey) return;
+
   weather.innerHTML=
     "<div class='big'>"+w.current+"°C</div>"+
     "<div class='small'>Hi "+w.high+
     "°  Low "+w.low+"°</div>";
+
+  lastWeatherKey=key;
 }
 
 /* ======================================================
-   TUB
+   TUB (cached, avg 1 decimal)
 ====================================================== */
-function trend(c,a){
-  const d=c-a;
-  if(Math.abs(d)<0.2) return "→";
-  return d>0?"↑":"↓";
-}
+let lastTubKey="";
 
 function renderTub(d){
+  const key = d.current+"|"+d.min+"|"+d.max+"|"+d.avg+"|"+d.as_of;
+  if(key === lastTubKey) return;
+
   tub.innerHTML=
     "<div class='tubTemp'>"+
       d.current+"° "+
@@ -294,12 +310,14 @@ function renderTub(d){
     "<div class='statGrid'>"+
       "Min "+d.min+"°  "+
       "Max "+d.max+"°  "+
-      "Avg "+d.avg+"°"+
+      "Avg "+Number(d.avg).toFixed(1)+"°"+
     "</div>"+
     "<div class='small'>"+
       "Updated "+
       formatTime(new Date(d.as_of))+
     "</div>";
+
+  lastTubKey=key;
 }
 
 /* ======================================================
@@ -338,13 +356,22 @@ function setAutoDim(){
   const h=new Date().getHours();
   let dim=0;
   if(h>=20 || h<6){
-    const night = h>=20 ? h-20 : h+4; // 0..9
+    const night = h>=20 ? h-20 : h+4;
     dim = Math.min(0.24, night*0.03);
   }
   document.documentElement.style.setProperty("--dim", dim.toFixed(2));
 }
 setAutoDim();
 setInterval(setAutoDim,60000);
+
+/* ======================================================
+   TREND
+====================================================== */
+function trend(c,a){
+  const d=c-a;
+  if(Math.abs(d)<0.2) return "→";
+  return d>0?"↑":"↓";
+}
 </script>
 
 </body>
