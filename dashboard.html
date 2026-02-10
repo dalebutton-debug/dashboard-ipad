@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>iPad Dashboard</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #eee;
+  margin: 0;
+  padding: 20px;
+}
+
+.panel {
+  background: #1c1c1c;
+  padding: 16px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+.event {
+  margin-bottom: 12px;
+}
+
+.tempBig {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.trend {
+  font-size: 18px;
+  color: #aaa;
+}
+
+.small {
+  font-size: 12px;
+  color: #aaa;
+}
+</style>
+</head>
+
+<body>
+
+<!-- CALENDAR PANEL -->
+<div class="panel">
+  <h2>Upcoming Events</h2>
+  <div id="events">Loading…</div>
+</div>
+
+<!-- HOT TUB PANEL -->
+<div class="panel">
+  <h2>Hot Tub</h2>
+  <div id="tub">Loading…</div>
+</div>
+
+<script>
+
+// ---------------- CALENDAR ----------------
+
+var feeds = [
+"https://outlook.office365.com/owa/calendar/26af0980c8354a26a02a157aca7c61c6@lh.ca/ecf9456d8fed4157a761807943ffcfc34672887921678293043/calendar.ics",
+"https://outlook.office365.com/owa/calendar/a73a88e8b34242d8845eda9c62f6c67a@durhamcollege.ca/4be00c81d0f548fe96a314a617fff1886005420293310136848/calendar.ics",
+"https://outlook.office365.com/owa/calendar/a73a88e8b34242d8845eda9c62f6c67a@durhamcollege.ca/c1e535ab93314041868b04a20b60ebbe1802079075628489542/calendar.ics",
+"https://outlook.office365.com/owa/calendar/a73a88e8b34242d8845eda9c62f6c67a@durhamcollege.ca/2519e462712049f98923d6bf5801718715481006410580993002/calendar.ics",
+"https://outlook.office365.com/owa/calendar/a73a88e8b34242d8845eda9c62f6c67a@durhamcollege.ca/9328da784b1545b6995d90ef2824d4349347600389197576626/calendar.ics"
+];
+
+var allEvents = [];
+var loaded = 0;
+
+function parseICS(text) {
+
+  var events = text.split("BEGIN:VEVENT").slice(1);
+
+  events.forEach(function(e){
+
+    var titleMatch = /SUMMARY:(.*)/.exec(e);
+    var dateMatch  = /DTSTART.*:(.*)/.exec(e);
+
+    if (!titleMatch || !dateMatch) return;
+
+    var raw = dateMatch[1].trim();
+
+    var y = raw.substring(0,4);
+    var m = raw.substring(4,6);
+    var d = raw.substring(6,8);
+    var h = raw.substring(9,11) || "00";
+    var min = raw.substring(11,13) || "00";
+
+    var dateObj = new Date(y, m-1, d, h, min);
+
+    if (dateObj > new Date()) {
+      allEvents.push({
+        title: titleMatch[1],
+        date: dateObj
+      });
+    }
+
+  });
+
+  loaded++;
+  if (loaded === feeds.length) renderEvents();
+}
+
+feeds.forEach(function(url){
+  fetch(url)
+    .then(function(r){ return r.text(); })
+    .then(parseICS);
+});
+
+function renderEvents() {
+
+  allEvents.sort(function(a,b){
+    return a.date - b.date;
+  });
+
+  var next = allEvents.slice(0,15);
+  var html = "";
+
+  next.forEach(function(e){
+    html += "<div class='event'>";
+    html += "<b>" + e.title + "</b><br>";
+    html += e.date.toLocaleString();
+    html += "</div>";
+  });
+
+  document.getElementById("events").innerHTML = html;
+}
+
+// ---------------- HOT TUB ----------------
+
+var tubURL = "https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
+
+function fmt1(x) {
+  var n = Number(x);
+  if (!isFinite(n)) return "-";
+  return n.toFixed(1);
+}
+
+function trendSymbol(c,a) {
+  var d = c - a;
+  if (Math.abs(d) < 0.2) return "→";
+  return d > 0 ? "↑" : "↓";
+}
+
+function lastTime(s) {
+  var d = new Date(s);
+  if (isNaN(d)) return "--:--";
+  return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+}
+
+function loadTub() {
+
+  fetch(tubURL)
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+
+    var html = "";
+
+    html += "<div class='tempBig'>";
+    html += fmt1(data.current) + "° ";
+    html += "<span class='trend'>" +
+            trendSymbol(data.current,data.avg) +
+            "</span></div>";
+
+    html += "<div style='margin-top:10px'>";
+    html += "<b>MIN:</b> " + fmt1(data.min) + "°<br>";
+    html += "<b>MAX:</b> " + fmt1(data.max) + "°<br>";
+    html += "<b>AVG:</b> " + fmt1(data.avg) + "°";
+    html += "</div>";
+
+    html += "<div class='small' style='margin-top:10px'>";
+    html += "Updated " + lastTime(data.as_of);
+    html += "</div>";
+
+    document.getElementById("tub").innerHTML = html;
+
+  });
+}
+
+loadTub();
+
+// ------------- AUTO REFRESH -------------
+
+setInterval(function(){
+  location.reload();
+}, 600000);
+
+</script>
+
+</body>
+</html>
