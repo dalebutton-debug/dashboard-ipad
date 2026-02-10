@@ -2,276 +2,186 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Home Dashboard</title>
 
 <style>
 
-body {
-  margin: 0;
-  padding: 24px;
-  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-  background: #0c0e12;
-  color: #e8eaed;
+body{
+  margin:0;
+  padding:24px;
+  font-family:-apple-system,Arial;
+  background:#0b0d11;
+  color:#e8eaed;
 }
 
-.header {
-  font-size: 56px;
-  font-weight: 600;
-  margin-bottom: 24px;
+.header{
+  font-size:56px;
+  margin-bottom:18px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-gap: 24px;
+.banner{
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:18px;
+  font-weight:600;
 }
 
-.panel {
-  background: #161a22;
-  border-radius: 18px;
-  padding: 20px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+.shift-SHIFT{background:#3a6df0;}
+.shift-TEACHING{background:#7a3af0;}
+.shift-OFF{background:#2a2f3a;}
+
+.grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:18px;
 }
 
-.panel h2 {
-  margin-top: 0;
-  font-size: 20px;
-  color: #9fb3ff;
+.panel{
+  background:#151922;
+  padding:18px;
+  border-radius:16px;
 }
 
-.dayBlock {
-  margin-bottom: 18px;
+.dayTitle{
+  color:#8aa4ff;
+  font-weight:600;
+  margin-top:12px;
 }
 
-.dayTitle {
-  font-size: 18px;
-  font-weight: 600;
-  color: #7fa2ff;
-  margin-bottom: 6px;
-}
+.event{margin:4px 0;}
 
-.event {
-  font-size: 16px;
-  margin-bottom: 4px;
-}
+.big{font-size:46px;font-weight:600;}
 
-.time {
-  color: #aab4c5;
-}
-
-.tempBig {
-  font-size: 52px;
-  font-weight: 600;
-}
-
-.statRow {
-  margin-top: 10px;
-  font-size: 16px;
-  color: #c6ccd6;
-}
-
-.small {
-  margin-top: 10px;
-  font-size: 13px;
-  color: #9aa3b2;
-}
-
-.weatherTemp {
-  font-size: 48px;
-  font-weight: 600;
-}
+.small{color:#9aa3b2;font-size:13px;}
 
 </style>
 </head>
 
 <body>
 
-<div class="header" id="clock">--:--</div>
+<div class="header" id="clock"></div>
+
+<div id="shiftBanner" class="banner"></div>
+
+<div class="panel" id="nowNext"></div>
 
 <div class="grid">
 
-  <!-- CALENDAR -->
-  <div class="panel">
-    <h2>Next 5 Days</h2>
-    <div id="calendar">Loading…</div>
-  </div>
+<div class="panel">
+<h3>Next 5 Days</h3>
+<div id="calendar"></div>
+</div>
 
-  <div>
+<div>
 
-    <!-- WEATHER -->
-    <div class="panel">
-      <h2>Today</h2>
-      <div id="weather">Loading…</div>
-    </div>
-
-    <!-- HOT TUB -->
-    <div class="panel" style="margin-top:24px;">
-      <h2>Hot Tub</h2>
-      <div id="tub">Loading…</div>
-    </div>
-
-  </div>
+<div class="panel" id="weather"></div>
+<div class="panel" style="margin-top:18px;" id="tub"></div>
 
 </div>
 
+</div>
+
+<div class="small" id="health"></div>
+
 <script>
 
-//
-// ---------- CLOCK ----------
-//
-
-function updateClock(){
-  var now = new Date();
-  document.getElementById("clock").innerHTML =
-    now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+function clock(){
+ document.getElementById("clock").innerHTML=
+ new Date().toLocaleTimeString([],{
+  hour:"2-digit",minute:"2-digit"
+ });
 }
-updateClock();
-setInterval(updateClock,1000);
+clock();
+setInterval(clock,1000);
 
+fetch("YOUR_SCRIPT_URL")
+.then(r=>r.json())
+.then(d=>{
 
-//
-// ---------- DATA ----------
-//
-
-var api =
-"https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
-
-fetch(api)
-.then(r => r.json())
-.then(data => {
-
-  renderCalendar(data.events);
-  renderTub(data);
+ renderShift(d.shift_state);
+ renderNowNext(d);
+ renderCalendar(d.events);
+ renderWeather(d.weather);
+ renderTub(d);
+ renderHealth(d.api_updated);
 
 });
 
+function renderShift(s){
+ var el=document.getElementById("shiftBanner");
+ el.className="banner shift-"+s;
+ el.innerHTML="Status: "+s;
+}
 
-//
-// ---------- CALENDAR ----------
-//
+function renderNowNext(d){
+
+ var html="<b>Now</b><br>";
+
+ if(d.now_event)
+   html+=d.now_event.title+"<br>";
+ else
+   html+="No active event<br>";
+
+ html+="<br><b>Next</b><br>";
+
+ if(d.next_event)
+   html+=d.next_event.title+"<br>"+
+     new Date(d.next_event.start)
+     .toLocaleTimeString([],{
+       hour:"2-digit",minute:"2-digit"
+     });
+
+ document.getElementById("nowNext").innerHTML=html;
+}
 
 function renderCalendar(events){
 
-  if(!events || events.length===0){
-    document.getElementById("calendar").innerHTML="No events";
-    return;
-  }
+ var grouped={};
 
-  var grouped = {};
+ events.forEach(e=>{
+  var d=new Date(e.start);
+  var key=d.toDateString();
+  if(!grouped[key])grouped[key]=[];
+  grouped[key].push(e);
+ });
 
-  events.forEach(e => {
+ var html="";
 
-    var d = new Date(e.start);
-    var key = d.toDateString();
-
-    if(!grouped[key]) grouped[key]=[];
-    grouped[key].push(e);
-
-  });
-
-  var html="";
-
-  Object.keys(grouped).forEach(day => {
-
-    html += "<div class='dayBlock'>";
-    html += "<div class='dayTitle'>"+day+"</div>";
-
-    grouped[day].forEach(e => {
-
-      var d = new Date(e.start);
-
-      html += "<div class='event'>";
-      html += "<span class='time'>";
-      html += d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-      html += "</span> — "+e.title;
-      html += "</div>";
-
+ Object.keys(grouped).forEach(day=>{
+  html+="<div class='dayTitle'>"+day+"</div>";
+  grouped[day].forEach(e=>{
+   var t=new Date(e.start)
+    .toLocaleTimeString([],{
+     hour:"2-digit",minute:"2-digit"
     });
-
-    html += "</div>";
-
+   html+="<div class='event'>"+t+" — "+e.title+"</div>";
   });
+ });
 
-  document.getElementById("calendar").innerHTML = html;
-
+ document.getElementById("calendar").innerHTML=html;
 }
 
-
-//
-// ---------- HOT TUB ----------
-//
-
-function fmt1(x){
-  var n=Number(x);
-  if(!isFinite(n)) return "-";
-  return n.toFixed(1);
+function renderWeather(w){
+ document.getElementById("weather").innerHTML=
+ "<div class='big'>"+w.current+"°C</div>"+
+ "High "+w.high+"° Low "+w.low;
 }
 
-function trendSymbol(c,a){
-  var d=c-a;
-  if(Math.abs(d)<0.2) return "→";
-  return d>0?"↑":"↓";
+function renderTub(t){
+ document.getElementById("tub").innerHTML=
+ "<div class='big'>"+t.current+"°</div>"+
+ "Avg "+t.avg.toFixed(1)+"°";
 }
 
-function renderTub(d){
-
-  var html="";
-
-  html+="<div class='tempBig'>";
-  html+=fmt1(d.current)+"° ";
-  html+="<span style='font-size:22px;color:#9aa3b2'>";
-  html+=trendSymbol(d.current,d.avg);
-  html+="</span></div>";
-
-  html+="<div class='statRow'>";
-  html+="Min "+fmt1(d.min)+"°<br>";
-  html+="Max "+fmt1(d.max)+"°<br>";
-  html+="Avg "+fmt1(d.avg)+"°";
-  html+="</div>";
-
-  html+="<div class='small'>";
-  html+="Updated "+
-    new Date(d.as_of).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-  html+="</div>";
-
-  document.getElementById("tub").innerHTML=html;
-
+function renderHealth(ts){
+ document.getElementById("health").innerHTML=
+ "System updated "+
+ new Date(ts).toLocaleTimeString([],{
+  hour:"2-digit",minute:"2-digit"
+ });
 }
 
-
-//
-// ---------- WEATHER ----------
-//
-
-fetch(
-"https://api.open-meteo.com/v1/forecast?latitude=43.945&longitude=-78.895&current_weather=true"
-)
-.then(r=>r.json())
-.then(data=>{
-
-  var w=data.current_weather;
-
-  var html="";
-  html+="<div class='weatherTemp'>"+w.temperature+"°C</div>";
-  html+="<div class='statRow'>Wind "+w.windspeed+" km/h</div>";
-  html+="<div class='small'>Updated "+
-    new Date(w.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+
-    "</div>";
-
-  document.getElementById("weather").innerHTML=html;
-
-});
-
-
-//
-// ---------- AUTO REFRESH ----------
-//
-
-setInterval(()=>{
-  location.reload();
-},600000);
+setInterval(()=>location.reload(),600000);
 
 </script>
-
 </body>
 </html>
