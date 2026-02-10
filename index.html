@@ -1,187 +1,209 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
+/* ================================
+   GLOBAL STYLING
+================================ */
 
-<style>
+document.body.style.margin = "0";
+document.body.style.fontFamily = "-apple-system, BlinkMacSystemFont, sans-serif";
+document.body.style.background = "linear-gradient(180deg, #020617 0%, #020617 100%)";
+document.body.style.color = "white";
 
-body{
-  margin:0;
-  padding:24px;
-  font-family:-apple-system,Arial;
-  background:#0b0d11;
-  color:#e8eaed;
-}
+/* ================================
+   MAIN WRAPPER
+================================ */
 
-.header{
-  font-size:56px;
-  margin-bottom:18px;
-}
+const wrapper = document.createElement("div");
+wrapper.style.padding = "40px";
+wrapper.style.display = "grid";
+wrapper.style.gridTemplateColumns = "2fr 1fr";
+wrapper.style.gap = "28px";
+wrapper.style.height = "100vh";
+wrapper.style.boxSizing = "border-box";
+document.body.appendChild(wrapper);
 
-.banner{
-  padding:12px;
-  border-radius:12px;
-  margin-bottom:18px;
-  font-weight:600;
-}
+/* ================================
+   LEFT PANEL
+================================ */
 
-.shift-SHIFT{background:#3a6df0;}
-.shift-TEACHING{background:#7a3af0;}
-.shift-OFF{background:#2a2f3a;}
+const leftPanel = document.createElement("div");
+leftPanel.style.display = "flex";
+leftPanel.style.flexDirection = "column";
+leftPanel.style.gap = "24px";
+wrapper.appendChild(leftPanel);
 
-.grid{
-  display:grid;
-  grid-template-columns:2fr 1fr;
-  gap:18px;
-}
+/* ================================
+   CLOCK
+================================ */
 
-.panel{
-  background:#151922;
-  padding:18px;
-  border-radius:16px;
-}
+const clock = document.createElement("div");
+clock.style.fontSize = "72px";
+clock.style.fontWeight = "600";
+clock.style.opacity = "0.9";
+leftPanel.appendChild(clock);
 
-.dayTitle{
-  color:#8aa4ff;
-  font-weight:600;
-  margin-top:12px;
-}
-
-.event{margin:4px 0;}
-
-.big{font-size:46px;font-weight:600;}
-
-.small{color:#9aa3b2;font-size:13px;}
-
-</style>
-</head>
-
-<body>
-
-<div class="header" id="clock"></div>
-
-<div id="shiftBanner" class="banner"></div>
-
-<div class="panel" id="nowNext"></div>
-
-<div class="grid">
-
-<div class="panel">
-<h3>Next 5 Days</h3>
-<div id="calendar"></div>
-</div>
-
-<div>
-
-<div class="panel" id="weather"></div>
-<div class="panel" style="margin-top:18px;" id="tub"></div>
-
-</div>
-
-</div>
-
-<div class="small" id="health"></div>
-
-<script>
-
-function clock(){
- document.getElementById("clock").innerHTML=
- new Date().toLocaleTimeString([],{
-  hour:"2-digit",minute:"2-digit"
- });
-}
-clock();
-setInterval(clock,1000);
-
-fetch("YOUR_SCRIPT_URL")
-.then(r=>r.json())
-.then(d=>{
-
- renderShift(d.shift_state);
- renderNowNext(d);
- renderCalendar(d.events);
- renderWeather(d.weather);
- renderTub(d);
- renderHealth(d.api_updated);
-
-});
-
-function renderShift(s){
- var el=document.getElementById("shiftBanner");
- el.className="banner shift-"+s;
- el.innerHTML="Status: "+s;
-}
-
-function renderNowNext(d){
-
- var html="<b>Now</b><br>";
-
- if(d.now_event)
-   html+=d.now_event.title+"<br>";
- else
-   html+="No active event<br>";
-
- html+="<br><b>Next</b><br>";
-
- if(d.next_event)
-   html+=d.next_event.title+"<br>"+
-     new Date(d.next_event.start)
-     .toLocaleTimeString([],{
-       hour:"2-digit",minute:"2-digit"
-     });
-
- document.getElementById("nowNext").innerHTML=html;
-}
-
-function renderCalendar(events){
-
- var grouped={};
-
- events.forEach(e=>{
-  var d=new Date(e.start);
-  var key=d.toDateString();
-  if(!grouped[key])grouped[key]=[];
-  grouped[key].push(e);
- });
-
- var html="";
-
- Object.keys(grouped).forEach(day=>{
-  html+="<div class='dayTitle'>"+day+"</div>";
-  grouped[day].forEach(e=>{
-   var t=new Date(e.start)
-    .toLocaleTimeString([],{
-     hour:"2-digit",minute:"2-digit"
-    });
-   html+="<div class='event'>"+t+" — "+e.title+"</div>";
+function updateClock() {
+  const now = new Date();
+  clock.textContent = now.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit"
   });
- });
+}
+setInterval(updateClock, 1000);
+updateClock();
 
- document.getElementById("calendar").innerHTML=html;
+/* ================================
+   EVENTS CARD
+================================ */
+
+const eventsCard = document.createElement("div");
+eventsCard.style.flex = "1";
+eventsCard.style.padding = "28px";
+eventsCard.style.borderRadius = "28px";
+eventsCard.style.background = "rgba(30,41,59,0.35)";
+eventsCard.style.backdropFilter = "blur(18px)";
+eventsCard.style.boxShadow = "0 10px 30px rgba(0,0,0,0.4)";
+eventsCard.style.overflowY = "auto";
+leftPanel.appendChild(eventsCard);
+
+const eventsTitle = document.createElement("div");
+eventsTitle.textContent = "Next 5 Days";
+eventsTitle.style.fontSize = "22px";
+eventsTitle.style.fontWeight = "600";
+eventsTitle.style.marginBottom = "18px";
+eventsCard.appendChild(eventsTitle);
+
+const eventsList = document.createElement("div");
+eventsList.style.display = "flex";
+eventsList.style.flexDirection = "column";
+eventsList.style.gap = "14px";
+eventsCard.appendChild(eventsList);
+
+/* ================================
+   RIGHT PANEL
+================================ */
+
+const rightPanel = document.createElement("div");
+rightPanel.style.display = "flex";
+rightPanel.style.flexDirection = "column";
+rightPanel.style.gap = "24px";
+wrapper.appendChild(rightPanel);
+
+/* ================================
+   TUB CARD
+================================ */
+
+const tubCard = document.createElement("div");
+tubCard.style.flex = "1";
+tubCard.style.padding = "24px";
+tubCard.style.borderRadius = "28px";
+tubCard.style.background = "rgba(30,41,59,0.35)";
+tubCard.style.backdropFilter = "blur(18px)";
+tubCard.style.boxShadow = "0 10px 30px rgba(0,0,0,0.4)";
+rightPanel.appendChild(tubCard);
+
+const tubTitle = document.createElement("div");
+tubTitle.textContent = "Tub Status";
+tubTitle.style.fontSize = "20px";
+tubTitle.style.marginBottom = "12px";
+tubCard.appendChild(tubTitle);
+
+const tubTemp = document.createElement("div");
+tubTemp.style.fontSize = "42px";
+tubTemp.style.fontWeight = "600";
+tubCard.appendChild(tubTemp);
+
+/* ================================
+   DATA FETCH
+================================ */
+
+async function loadData() {
+  const res = await fetch("YOUR_SCRIPT_ENDPOINT");
+  const data = await res.json();
+
+  /* Tub */
+  tubTemp.textContent = `${data.current.toFixed(1)}°C`;
+
+  /* Events filter next 5 days */
+  const now = new Date();
+  const fiveDays = new Date();
+  fiveDays.setDate(now.getDate() + 5);
+
+  const filtered = data.events.filter(e => {
+    const d = parseICSDate(e.start);
+    return d >= now && d <= fiveDays;
+  });
+
+  renderEvents(filtered);
 }
 
-function renderWeather(w){
- document.getElementById("weather").innerHTML=
- "<div class='big'>"+w.current+"°C</div>"+
- "High "+w.high+"° Low "+w.low;
+/* ================================
+   RENDER EVENTS
+================================ */
+
+function renderEvents(events) {
+  eventsList.innerHTML = "";
+
+  if (!events.length) {
+    const empty = document.createElement("div");
+    empty.textContent = "No upcoming events";
+    empty.style.opacity = "0.6";
+    eventsList.appendChild(empty);
+    return;
+  }
+
+  events.forEach(e => {
+    const row = document.createElement("div");
+    row.style.padding = "14px 16px";
+    row.style.borderRadius = "16px";
+    row.style.background = "rgba(15,23,42,0.6)";
+    row.style.display = "flex";
+    row.style.flexDirection = "column";
+
+    const title = document.createElement("div");
+    title.textContent = e.title;
+    title.style.fontSize = "16px";
+    title.style.fontWeight = "500";
+
+    const time = document.createElement("div");
+    const d = parseICSDate(e.start);
+    time.textContent = d.toLocaleString([], {
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    time.style.opacity = "0.7";
+    time.style.fontSize = "13px";
+
+    row.appendChild(title);
+    row.appendChild(time);
+    eventsList.appendChild(row);
+  });
 }
 
-function renderTub(t){
- document.getElementById("tub").innerHTML=
- "<div class='big'>"+t.current+"°</div>"+
- "Avg "+t.avg.toFixed(1)+"°";
+/* ================================
+   ICS DATE PARSER
+================================ */
+
+function parseICSDate(val) {
+  if (val.includes("T")) {
+    return new Date(
+      val.replace(
+        /(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/,
+        "$1-$2-$3T$4:$5"
+      )
+    );
+  } else {
+    return new Date(
+      val.replace(
+        /(\d{4})(\d{2})(\d{2})/,
+        "$1-$2-$3"
+      )
+    );
+  }
 }
 
-function renderHealth(ts){
- document.getElementById("health").innerHTML=
- "System updated "+
- new Date(ts).toLocaleTimeString([],{
-  hour:"2-digit",minute:"2-digit"
- });
-}
+/* ================================
+   INIT
+================================ */
 
-setInterval(()=>location.reload(),600000);
-
-</script>
-</body>
-</html>
+loadData();
+setInterval(loadData, 300000);
