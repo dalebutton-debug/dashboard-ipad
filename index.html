@@ -1,209 +1,325 @@
-/* ================================
-   GLOBAL STYLING
-================================ */
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Home Dashboard</title>
 
-document.body.style.margin = "0";
-document.body.style.fontFamily = "-apple-system, BlinkMacSystemFont, sans-serif";
-document.body.style.background = "linear-gradient(180deg, #020617 0%, #020617 100%)";
-document.body.style.color = "white";
+<style>
 
-/* ================================
-   MAIN WRAPPER
-================================ */
-
-const wrapper = document.createElement("div");
-wrapper.style.padding = "40px";
-wrapper.style.display = "grid";
-wrapper.style.gridTemplateColumns = "2fr 1fr";
-wrapper.style.gap = "28px";
-wrapper.style.height = "100vh";
-wrapper.style.boxSizing = "border-box";
-document.body.appendChild(wrapper);
-
-/* ================================
-   LEFT PANEL
-================================ */
-
-const leftPanel = document.createElement("div");
-leftPanel.style.display = "flex";
-leftPanel.style.flexDirection = "column";
-leftPanel.style.gap = "24px";
-wrapper.appendChild(leftPanel);
-
-/* ================================
-   CLOCK
-================================ */
-
-const clock = document.createElement("div");
-clock.style.fontSize = "72px";
-clock.style.fontWeight = "600";
-clock.style.opacity = "0.9";
-leftPanel.appendChild(clock);
-
-function updateClock() {
-  const now = new Date();
-  clock.textContent = now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+body {
+  margin:0;
+  padding:28px;
+  font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+  background:#0b0f14;
+  color:#e6e9ef;
 }
-setInterval(updateClock, 1000);
+
+/* ---------- CLOCK ---------- */
+
+.header {
+  font-size:72px;
+  font-weight:600;
+  letter-spacing:2px;
+  margin-bottom:28px;
+}
+
+/* ---------- GRID ---------- */
+
+.grid {
+  display:grid;
+  grid-template-columns:2.4fr 1fr;
+  gap:24px;
+}
+
+/* ---------- PANELS ---------- */
+
+.panel {
+  background:#141922;
+  border-radius:22px;
+  padding:22px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45);
+}
+
+.panel h2 {
+  margin:0 0 16px 0;
+  font-size:18px;
+  font-weight:600;
+  color:#8fa8ff;
+  letter-spacing:.5px;
+}
+
+/* ---------- CALENDAR ---------- */
+
+.dayBlock {
+  margin-bottom:18px;
+}
+
+.dayTitle {
+  font-size:17px;
+  font-weight:600;
+  color:#6f8cff;
+  margin-bottom:6px;
+}
+
+.event {
+  font-size:15px;
+  margin-bottom:4px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.time {
+  color:#9aa6b5;
+}
+
+/* ---------- WEATHER ---------- */
+
+.weatherTemp {
+  font-size:54px;
+  font-weight:600;
+}
+
+.weatherMeta {
+  margin-top:8px;
+  font-size:16px;
+  color:#c3cad6;
+}
+
+/* ---------- TUB ---------- */
+
+.tempBig {
+  font-size:54px;
+  font-weight:600;
+}
+
+.trend {
+  font-size:20px;
+  color:#9aa6b5;
+  margin-left:8px;
+}
+
+.statRow {
+  margin-top:10px;
+  font-size:15px;
+  color:#c3cad6;
+  line-height:1.5;
+}
+
+.small {
+  margin-top:10px;
+  font-size:12px;
+  color:#8b94a3;
+}
+
+/* ---------- STATUS DOT ---------- */
+
+.dot {
+  display:inline-block;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  margin-left:8px;
+  background:#37d67a;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header" id="clock">--:--</div>
+
+<div class="grid">
+
+  <!-- CALENDAR -->
+  <div class="panel">
+    <h2>Next 5 Days</h2>
+    <div id="calendar">Loading…</div>
+  </div>
+
+  <div>
+
+    <!-- WEATHER -->
+    <div class="panel">
+      <h2>Today</h2>
+      <div id="weather">Loading…</div>
+    </div>
+
+    <!-- HOT TUB -->
+    <div class="panel" style="margin-top:24px;">
+      <h2>Hot Tub</h2>
+      <div id="tub">Loading…</div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+/* ---------- CLOCK ---------- */
+
+function updateClock(){
+  var now=new Date();
+  document.getElementById("clock").innerHTML=
+    now.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+}
 updateClock();
+setInterval(updateClock,1000);
 
-/* ================================
-   EVENTS CARD
-================================ */
 
-const eventsCard = document.createElement("div");
-eventsCard.style.flex = "1";
-eventsCard.style.padding = "28px";
-eventsCard.style.borderRadius = "28px";
-eventsCard.style.background = "rgba(30,41,59,0.35)";
-eventsCard.style.backdropFilter = "blur(18px)";
-eventsCard.style.boxShadow = "0 10px 30px rgba(0,0,0,0.4)";
-eventsCard.style.overflowY = "auto";
-leftPanel.appendChild(eventsCard);
+/* ---------- API ---------- */
 
-const eventsTitle = document.createElement("div");
-eventsTitle.textContent = "Next 5 Days";
-eventsTitle.style.fontSize = "22px";
-eventsTitle.style.fontWeight = "600";
-eventsTitle.style.marginBottom = "18px";
-eventsCard.appendChild(eventsTitle);
+var api =
+"https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
 
-const eventsList = document.createElement("div");
-eventsList.style.display = "flex";
-eventsList.style.flexDirection = "column";
-eventsList.style.gap = "14px";
-eventsCard.appendChild(eventsList);
+fetch(api)
+.then(r=>r.json())
+.then(data=>{
 
-/* ================================
-   RIGHT PANEL
-================================ */
+  renderCalendar(data.events);
+  renderTub(data);
 
-const rightPanel = document.createElement("div");
-rightPanel.style.display = "flex";
-rightPanel.style.flexDirection = "column";
-rightPanel.style.gap = "24px";
-wrapper.appendChild(rightPanel);
+});
 
-/* ================================
-   TUB CARD
-================================ */
 
-const tubCard = document.createElement("div");
-tubCard.style.flex = "1";
-tubCard.style.padding = "24px";
-tubCard.style.borderRadius = "28px";
-tubCard.style.background = "rgba(30,41,59,0.35)";
-tubCard.style.backdropFilter = "blur(18px)";
-tubCard.style.boxShadow = "0 10px 30px rgba(0,0,0,0.4)";
-rightPanel.appendChild(tubCard);
+/* ---------- CALENDAR (5-DAY FILTER) ---------- */
 
-const tubTitle = document.createElement("div");
-tubTitle.textContent = "Tub Status";
-tubTitle.style.fontSize = "20px";
-tubTitle.style.marginBottom = "12px";
-tubCard.appendChild(tubTitle);
+function renderCalendar(events){
 
-const tubTemp = document.createElement("div");
-tubTemp.style.fontSize = "42px";
-tubTemp.style.fontWeight = "600";
-tubCard.appendChild(tubTemp);
-
-/* ================================
-   DATA FETCH
-================================ */
-
-async function loadData() {
-  const res = await fetch("YOUR_SCRIPT_ENDPOINT");
-  const data = await res.json();
-
-  /* Tub */
-  tubTemp.textContent = `${data.current.toFixed(1)}°C`;
-
-  /* Events filter next 5 days */
-  const now = new Date();
-  const fiveDays = new Date();
-  fiveDays.setDate(now.getDate() + 5);
-
-  const filtered = data.events.filter(e => {
-    const d = parseICSDate(e.start);
-    return d >= now && d <= fiveDays;
-  });
-
-  renderEvents(filtered);
-}
-
-/* ================================
-   RENDER EVENTS
-================================ */
-
-function renderEvents(events) {
-  eventsList.innerHTML = "";
-
-  if (!events.length) {
-    const empty = document.createElement("div");
-    empty.textContent = "No upcoming events";
-    empty.style.opacity = "0.6";
-    eventsList.appendChild(empty);
+  if(!events || events.length===0){
+    calendar.innerHTML="No events";
     return;
   }
 
-  events.forEach(e => {
-    const row = document.createElement("div");
-    row.style.padding = "14px 16px";
-    row.style.borderRadius = "16px";
-    row.style.background = "rgba(15,23,42,0.6)";
-    row.style.display = "flex";
-    row.style.flexDirection = "column";
+  var now=new Date();
+  var end=new Date();
+  end.setDate(now.getDate()+5);
 
-    const title = document.createElement("div");
-    title.textContent = e.title;
-    title.style.fontSize = "16px";
-    title.style.fontWeight = "500";
+  var grouped={};
 
-    const time = document.createElement("div");
-    const d = parseICSDate(e.start);
-    time.textContent = d.toLocaleString([], {
-      weekday: "short",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-    time.style.opacity = "0.7";
-    time.style.fontSize = "13px";
+  events.forEach(e=>{
 
-    row.appendChild(title);
-    row.appendChild(time);
-    eventsList.appendChild(row);
+    var d=new Date(e.start);
+
+    if(d<now || d>end) return;
+
+    var key=d.toDateString();
+
+    if(!grouped[key]) grouped[key]=[];
+    grouped[key].push(e);
+
   });
+
+  var html="";
+
+  Object.keys(grouped).forEach(day=>{
+
+    html+="<div class='dayBlock'>";
+    html+="<div class='dayTitle'>"+day+"</div>";
+
+    grouped[day].forEach(e=>{
+
+      var d=new Date(e.start);
+
+      html+="<div class='event'>";
+      html+="<span class='time'>"+
+        d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+
+        "</span>";
+      html+="<span>"+e.title+"</span>";
+      html+="</div>";
+
+    });
+
+    html+="</div>";
+
+  });
+
+  document.getElementById("calendar").innerHTML=html;
+
 }
 
-/* ================================
-   ICS DATE PARSER
-================================ */
 
-function parseICSDate(val) {
-  if (val.includes("T")) {
-    return new Date(
-      val.replace(
-        /(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/,
-        "$1-$2-$3T$4:$5"
-      )
-    );
-  } else {
-    return new Date(
-      val.replace(
-        /(\d{4})(\d{2})(\d{2})/,
-        "$1-$2-$3"
-      )
-    );
-  }
+/* ---------- HOT TUB ---------- */
+
+function fmt1(x){
+  var n=Number(x);
+  if(!isFinite(n)) return "-";
+  return n.toFixed(1);
 }
 
-/* ================================
-   INIT
-================================ */
+function trendSymbol(c,a){
+  var d=c-a;
+  if(Math.abs(d)<0.2) return "→";
+  return d>0?"↑":"↓";
+}
 
-loadData();
-setInterval(loadData, 300000);
+function renderTub(d){
+
+  var html="";
+
+  html+="<div class='tempBig'>";
+  html+=fmt1(d.current)+"°";
+  html+="<span class='trend'>"+
+    trendSymbol(d.current,d.avg)+
+  "</span>";
+  html+="<span class='dot'></span>";
+  html+="</div>";
+
+  html+="<div class='statRow'>";
+  html+="Min "+fmt1(d.min)+"°<br>";
+  html+="Max "+fmt1(d.max)+"°<br>";
+  html+="Avg "+fmt1(d.avg)+"°";
+  html+="</div>";
+
+  html+="<div class='small'>";
+  html+="Updated "+
+    new Date(d.as_of)
+      .toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  html+="</div>";
+
+  tub.innerHTML=html;
+
+}
+
+
+/* ---------- WEATHER ---------- */
+
+fetch(
+"https://api.open-meteo.com/v1/forecast?latitude=43.945&longitude=-78.895&current_weather=true"
+)
+.then(r=>r.json())
+.then(data=>{
+
+  var w=data.current_weather;
+
+  var html="";
+
+  html+="<div class='weatherTemp'>"+w.temperature+"°C</div>";
+
+  html+="<div class='weatherMeta'>";
+  html+="Wind "+w.windspeed+" km/h<br>";
+  html+="Dir "+w.winddirection+"°";
+  html+="</div>";
+
+  html+="<div class='small'>";
+  html+="Updated "+
+    new Date(w.time)
+      .toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  html+="</div>";
+
+  weather.innerHTML=html;
+
+});
+
+
+/* ---------- AUTO REFRESH ---------- */
+
+setInterval(()=>{
+  location.reload();
+},600000);
+
+</script>
+
+</body>
+</html>
