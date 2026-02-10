@@ -12,7 +12,7 @@
   --accent:#7fa2ff;
   --divider:#1e2530;
   --dim:0;
-  --s:1.25; /* global scale (25% bigger) */
+  --s:1.5; /* +20% from last version */
 }
 
 *{ box-sizing:border-box; }
@@ -45,6 +45,23 @@ body::before{
   font-size:calc(15px * var(--s));
   color:var(--muted);
   margin-top:calc(6px * var(--s));
+}
+
+.statusRow{
+  display:flex;
+  align-items:center;
+  gap:calc(10px * var(--s));
+  margin-top:calc(6px * var(--s));
+  font-size:calc(12px * var(--s));
+  color:var(--muted);
+}
+
+.dot{
+  width:calc(10px * var(--s));
+  height:calc(10px * var(--s));
+  border-radius:50%;
+  background:#6b7c93;
+  display:inline-block;
 }
 
 .grid{
@@ -126,6 +143,13 @@ body::before{
 .tubTemp{ font-size:calc(36px * var(--s)); font-weight:600; }
 .statGrid{ margin-top:calc(6px * var(--s)); font-size:calc(12px * var(--s)); color:var(--muted); }
 
+.toggleRow{
+  margin-top:calc(6px * var(--s));
+  font-size:calc(12px * var(--s));
+  color:var(--muted);
+}
+.toggleRow input{ transform:scale(1.2); margin-right:calc(6px * var(--s)); }
+
 @media (max-width:980px){
   .grid{ grid-template-columns:1fr; }
   .header{ font-size:calc(48px * var(--s)); }
@@ -138,11 +162,19 @@ body::before{
 <div class="header" id="clock">--:--</div>
 <div class="subHeader" id="countdown">Loading…</div>
 
+<div class="statusRow">
+  <span class="dot" id="netDot"></span>
+  <span id="lastUpdated">Last updated: --</span>
+</div>
+
 <div class="grid">
 
   <div class="panel">
     <div id="shift"></div>
     <div class="nowNext" id="nowNext"></div>
+    <div class="toggleRow">
+      <label><input type="checkbox" id="compactToggle">Show today + tomorrow only</label>
+    </div>
     <div id="calendar">Loading…</div>
   </div>
 
@@ -177,6 +209,14 @@ setInterval(tick,1000);
 const api =
 "https://script.google.com/macros/s/AKfycbydfy3idgYUJXPNfHZ54LKWKkkljHYEr8ydMZKvaIrNANT_ccGfw_LgXVmSVckk4E-k6Q/exec";
 
+let fetchInterval = 600000; // 10 min default
+let fetchTimer = null;
+
+function scheduleFetch(){
+  if(fetchTimer) clearInterval(fetchTimer);
+  fetchTimer = setInterval(loadData, fetchInterval);
+}
+
 function loadData(){
   fetch(api)
   .then(r=>r.json())
@@ -187,10 +227,11 @@ function loadData(){
     renderWeather(data.weather);
     renderTub(data);
     renderCountdown(data.next_event);
+    renderStatus(data.api_updated);
   });
 }
 loadData();
-setInterval(loadData,600000);
+scheduleFetch();
 
 /* ======================================================
    SHIFT STATE
@@ -234,8 +275,19 @@ function renderNowNext(data){
 ====================================================== */
 let lastEventsKey = "";
 let lastCalendarHTML = "";
+let showCompact = false;
+
+compactToggle.addEventListener("change", ()=>{
+  showCompact = compactToggle.checked;
+  lastEventsKey = ""; // force rerender
+  renderCalendar(lastEventsData);
+});
+
+let lastEventsData = [];
 
 function renderCalendar(events){
+  lastEventsData = events;
+
   if(!events.length){
     if(lastEventsKey !== "EMPTY"){
       calendar.textContent="No events";
@@ -245,7 +297,7 @@ function renderCalendar(events){
     return;
   }
 
-  const key = events.map(e=>e.start+"|"+e.title).join(";");
+  const key = events.map(e=>e.start+"|"+e.title).join(";") + "|" + (showCompact ? "C" : "F");
   if(key === lastEventsKey && lastCalendarHTML){
     return;
   }
@@ -256,7 +308,7 @@ function renderCalendar(events){
     const y=d.getFullYear();
     const m=d.getMonth()+1;
     const day=d.getDate();
-    const k=y*10000 + m*100 + day; // numeric key
+    const k=y*10000 + m*100 + day;
     if(!grouped[k]){
       grouped[k]={
         date:new Date(y, m-1, day),
@@ -266,11 +318,12 @@ function renderCalendar(events){
     grouped[k].events.push(events[i]);
   }
 
-  const keys=Object.keys(grouped).sort((a,b)=>a-b).slice(0,6);
+  const keys=Object.keys(grouped).sort((a,b)=>a-b);
+  const sliced = showCompact ? keys.slice(0,2) : keys.slice(0,6);
 
   let html="<div class='calendarGrid'>";
-  for(let i=0;i<keys.length;i++){
-    const block=grouped[keys[i]];
+  for(let i=0;i<sliced.length;i++){
+    const block=grouped[sliced[i]];
     html+="<div class='dayBlock'>";
     html+="<div class='dayTitle'>"+block.date.toDateString()+"</div>";
 
@@ -297,13 +350,16 @@ function renderCalendar(events){
 let lastWeatherKey="";
 
 function renderWeather(w){
-  const key = w.current+"|"+w.high+"|"+w.low;
+  const key = w.current+"|"+w.high+"|"+w.low+"|"+w.feels_like+"|"+w.wind+"|"+w.precip;
   if(key === lastWeatherKey) return;
 
   weather.innerHTML=
     "<div class='big'>"+w.current+"°C</div>"+
     "<div class='small'>Hi "+w.high+
-    "°  Low "+w.low+"°</div>";
+    "°  Low "+w.low+"°</div>"+
+    "<div class='small'>Feels "+w.feels_like+
+    "°  Wind "+w.wind+" km/h</div>"+
+    "<div class='small'>Precip "+w.precip+"%</div>";
 
   lastWeatherKey=key;
 }
@@ -356,6 +412,23 @@ function renderCountdown(next){
 }
 
 /* ======================================================
+   STATUS + CONNECTIVITY
+====================================================== */
+function renderStatus(apiUpdated){
+  const d = new Date(apiUpdated);
+  lastUpdated.textContent = "Last updated: " + formatTime(d);
+
+  const age = (new Date() - d) / 60000; // minutes
+  if(age < 20){
+    netDot.style.background = "#4cd964"; // green
+  }else if(age < 60){
+    netDot.style.background = "#ffcc00"; // yellow
+  }else{
+    netDot.style.background = "#ff3b30"; // red
+  }
+}
+
+/* ======================================================
    TIME FORMAT (keep AM on same line)
 ====================================================== */
 function formatTime(d){
@@ -365,16 +438,20 @@ function formatTime(d){
 }
 
 /* ======================================================
-   AUTO DIM (time of day)
+   AUTO DIM + QUIET HOURS
 ====================================================== */
 function setAutoDim(){
   const h=new Date().getHours();
   let dim=0;
   if(h>=20 || h<6){
     const night = h>=20 ? h-20 : h+4;
-    dim = Math.min(0.24, night*0.03);
+    dim = Math.min(0.30, night*0.035);
+    fetchInterval = 1800000; // 30 min at night
+  }else{
+    fetchInterval = 600000;  // 10 min daytime
   }
   document.documentElement.style.setProperty("--dim", dim.toFixed(2));
+  scheduleFetch();
 }
 setAutoDim();
 setInterval(setAutoDim,60000);
