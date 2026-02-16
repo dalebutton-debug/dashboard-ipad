@@ -77,6 +77,15 @@ body::before{
   padding:calc(14px * var(--s));
 }
 
+.cardLabel{
+  font-size:calc(12px * var(--s));
+  color:var(--muted);
+  font-weight:600;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  margin-bottom:calc(6px * var(--s));
+}
+
 .shiftBanner{
   font-size:calc(15px * var(--s));
   padding:calc(6px * var(--s)) calc(10px * var(--s));
@@ -180,10 +189,12 @@ body::before{
 
   <div>
     <div class="panel">
+      <div class="cardLabel">Temperature</div>
       <div id="weather">Loading…</div>
     </div>
 
     <div class="panel" style="margin-top:calc(14px * var(--s));">
+      <div class="cardLabel">Hot Tub</div>
       <div id="tub">Loading…</div>
     </div>
   </div>
